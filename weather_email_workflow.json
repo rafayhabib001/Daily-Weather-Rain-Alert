@@ -1,0 +1,129 @@
+{
+  "name": "Daily Weather Rain Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24,
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [60, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "latitude", "value": "31.5497" },
+            { "name": "longitude", "value": "74.3436" },
+            { "name": "daily", "value": "weathercode,precipitation_sum" },
+            { "name": "timezone", "value": "Asia/Karachi" },
+            { "name": "forecast_days", "value": "1" }
+          ]
+        }
+      },
+      "id": "node-http",
+      "name": "Fetch Weather",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "rain-check",
+              "leftValue": "={{ $json.daily.weathercode[0] }}",
+              "rightValue": 50,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if",
+      "name": "Is It Raining?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "your-email@gmail.com",
+        "toEmail": "your-email@gmail.com",
+        "subject": "☂ Rain Alert – Bring an Umbrella Today!",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><body style=\"font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:24px;\">\n<h2 style=\"color:#1a56db;\">🌧️ Rain Expected Today</h2>\n<p>Hello! The weather forecast for today shows <strong>rain or storms</strong>.</p>\n<p><strong>Weather Code:</strong> {{ $('Fetch Weather').item.json.daily.weathercode[0] }}<br>\n<strong>Precipitation:</strong> {{ $('Fetch Weather').item.json.daily.precipitation_sum[0] }} mm</p>\n<p>☂️ Don't forget your umbrella!</p>\n<hr>\n<p style=\"color:#6b7280;font-size:12px;\">Powered by n8n + Open-Meteo</p>\n</body></html>"
+      },
+      "id": "node-email-rain",
+      "name": "Email – Rain Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [720, 180],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "your-email@gmail.com",
+        "toEmail": "your-email@gmail.com",
+        "subject": "☀️ No Rain Today – Enjoy Your Day!",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><body style=\"font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:24px;\">\n<h2 style=\"color:#047857;\">☀️ Clear Weather Today</h2>\n<p>Hello! Good news — <strong>no rain expected</strong> today.</p>\n<p><strong>Weather Code:</strong> {{ $('Fetch Weather').item.json.daily.weathercode[0] }}<br>\n<strong>Precipitation:</strong> {{ $('Fetch Weather').item.json.daily.precipitation_sum[0] }} mm</p>\n<p>🌞 Enjoy the clear weather!</p>\n<hr>\n<p style=\"color:#6b7280;font-size:12px;\">Powered by n8n + Open-Meteo</p>\n</body></html>"
+      },
+      "id": "node-email-clear",
+      "name": "Email – No Rain",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [720, 420],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Fetch Weather", "type": "main", "index": 0 }]]
+    },
+    "Fetch Weather": {
+      "main": [[{ "node": "Is It Raining?", "type": "main", "index": 0 }]]
+    },
+    "Is It Raining?": {
+      "main": [
+        [{ "node": "Email – Rain Alert", "type": "main", "index": 0 }],
+        [{ "node": "Email – No Rain", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
