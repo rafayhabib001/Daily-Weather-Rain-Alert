@@ -2,43 +2,39 @@
   "name": "Daily Weather Rain Alert",
   "nodes": [
     {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 172],
+      "id": "eed9e222-ea6a-4c08-8f4d-8ef813cc6ef3",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
       "parameters": {
-        "rule": {
-          "interval": [
+        "url": "https://api.weatherapi.com/v1/current.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
             {
-              "field": "hours",
-              "hoursInterval": 24,
-              "triggerAtHour": 7
+              "name": "key",
+              "value": "YOUR_API_KEY"
+            },
+            {
+              "name": "q",
+              "value": "lahore"
+            },
+            {
+              "name": "aqi",
+              "value": "no"
             }
           ]
         }
       },
-      "id": "node-schedule",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [60, 300]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "https://api.open-meteo.com/v1/forecast",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            { "name": "latitude", "value": "31.5497" },
-            { "name": "longitude", "value": "74.3436" },
-            { "name": "daily", "value": "weathercode,precipitation_sum" },
-            { "name": "timezone", "value": "Asia/Karachi" },
-            { "name": "forecast_days", "value": "1" }
-          ]
-        }
-      },
-      "id": "node-http",
-      "name": "Fetch Weather",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [280, 300]
+      "typeVersion": 4.4,
+      "position": [208, 176],
+      "id": "dea2f838-f9ce-41fd-857f-b6a7d8cc328e",
+      "name": "HTTP Request"
     },
     {
       "parameters": {
@@ -46,84 +42,84 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 3
           },
           "conditions": [
             {
-              "id": "rain-check",
-              "leftValue": "={{ $json.daily.weathercode[0] }}",
-              "rightValue": 50,
+              "id": "9bd45ee4-ce1c-4acc-97b7-bec5d77e8c40",
+              "leftValue": "={{ $json.current.condition.text }}",
+              "rightValue": "Clear",
               "operator": {
-                "type": "number",
-                "operation": "gte"
+                "type": "string",
+                "operation": "equals"
               }
             }
           ],
           "combinator": "and"
         }
       },
-      "id": "node-if",
-      "name": "Is It Raining?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [500, 300]
+      "typeVersion": 2.3,
+      "position": [416, 176],
+      "id": "80f47025-b927-48d0-ad6f-a9a374540e78",
+      "name": "If"
     },
     {
       "parameters": {
-        "fromEmail": "your-email@gmail.com",
-        "toEmail": "your-email@gmail.com",
-        "subject": "☂ Rain Alert – Bring an Umbrella Today!",
-        "emailType": "html",
-        "message": "<!DOCTYPE html><html><body style=\"font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:24px;\">\n<h2 style=\"color:#1a56db;\">🌧️ Rain Expected Today</h2>\n<p>Hello! The weather forecast for today shows <strong>rain or storms</strong>.</p>\n<p><strong>Weather Code:</strong> {{ $('Fetch Weather').item.json.daily.weathercode[0] }}<br>\n<strong>Precipitation:</strong> {{ $('Fetch Weather').item.json.daily.precipitation_sum[0] }} mm</p>\n<p>☂️ Don't forget your umbrella!</p>\n<hr>\n<p style=\"color:#6b7280;font-size:12px;\">Powered by n8n + Open-Meteo</p>\n</body></html>"
+        "sendTo": "YOUR_EMAIL",
+        "subject": "weather alert",
+        "emailType": "text",
+        "message": "=today, {{ $json.location.name }}\nweather is {{ $json.current.condition.text }}"
       },
-      "id": "node-email-rain",
-      "name": "Email – Rain Alert",
       "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [720, 180],
+      "typeVersion": 2.2,
+      "position": [672, 80],
+      "id": "0126d00c-eaef-4921-ac3f-e4c934e43131",
+      "name": "Send a message",
+      "webhookId": "REMOVED_FOR_SECURITY",
       "credentials": {
         "gmailOAuth2": {
-          "id": "YOUR_GMAIL_CREDENTIAL_ID",
-          "name": "Gmail account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "fromEmail": "your-email@gmail.com",
-        "toEmail": "your-email@gmail.com",
-        "subject": "☀️ No Rain Today – Enjoy Your Day!",
-        "emailType": "html",
-        "message": "<!DOCTYPE html><html><body style=\"font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:24px;\">\n<h2 style=\"color:#047857;\">☀️ Clear Weather Today</h2>\n<p>Hello! Good news — <strong>no rain expected</strong> today.</p>\n<p><strong>Weather Code:</strong> {{ $('Fetch Weather').item.json.daily.weathercode[0] }}<br>\n<strong>Precipitation:</strong> {{ $('Fetch Weather').item.json.daily.precipitation_sum[0] }} mm</p>\n<p>🌞 Enjoy the clear weather!</p>\n<hr>\n<p style=\"color:#6b7280;font-size:12px;\">Powered by n8n + Open-Meteo</p>\n</body></html>"
-      },
-      "id": "node-email-clear",
-      "name": "Email – No Rain",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [720, 420],
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
           "name": "Gmail account"
         }
       }
     }
   ],
   "connections": {
-    "Schedule Trigger": {
-      "main": [[{ "node": "Fetch Weather", "type": "main", "index": 0 }]]
-    },
-    "Fetch Weather": {
-      "main": [[{ "node": "Is It Raining?", "type": "main", "index": 0 }]]
-    },
-    "Is It Raining?": {
+    "When clicking ‘Execute workflow’": {
       "main": [
-        [{ "node": "Email – Rain Alert", "type": "main", "index": 0 }],
-        [{ "node": "Email – No Rain", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
-  "settings": {
-    "executionOrder": "v1"
-  }
+  "active": false
 }
